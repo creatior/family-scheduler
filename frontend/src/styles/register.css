@@ -1,0 +1,62 @@
+.register-container {
+    background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+}
+
+.register-content {
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 16px;
+    margin: 20px;
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+}
+
+.auth-header {
+    background: linear-gradient(to right, #6a11cb, #2575fc);
+    padding: 30px 24px;
+    border-radius: 16px 16px 0 0;
+    color: white;
+    text-align: center;
+}
+
+.auth-header h2 {
+    margin-bottom: 8px;
+    font-size: 2rem;
+}
+
+.auth-header p {
+    opacity: 0.9;
+    font-weight: 300;
+}
+
+.password-hint {
+    color: #6c757d;
+    font-size: 0.8rem;
+    margin-top: 6px;
+}
+
+.date-input {
+    position: relative;
+}
+
+.date-input::-webkit-calendar-picker-indicator {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    opacity: 0.7;
+    cursor: pointer;
+}
+
+/* Адаптация для мобильных */
+@media (max-width: 576px) {
+    .register-content {
+        margin: 10px;
+    }
+    
+    .auth-header {
+        padding: 20px 15px;
+    }
+    
+    .auth-header h2 {
+        font-size: 1.5rem;
+    }
+}
