@@ -1,22 +1,22 @@
 .home-page {
-    max-width: 800px;
-    margin: 0 auto;
-    padding: 2rem;
-    text-align: center;
-  }
-  
-  .logout-btn {
-    background: #ef233c;
-    color: white;
-    border: none;
-    padding: 10px 20px;
-    border-radius: 5px;
-    cursor: pointer;
-    margin-top: 20px;
-    transition: all 0.3s;
-  }
-  
-  .logout-btn:hover {
-    background: #d90429;
-    transform: translateY(-2px);
-  }
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.calendar-wrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+}
+
+.calendar-container-wrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  background: white;
+}

@@ -5,7 +5,11 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from .serializers import RegisterSerializer, UserSerializer
 from django.contrib.auth import authenticate, login
-
+from .serializers import EventSerializer
+from django.utils import timezone
+from django.db import models
+from datetime import timedelta
+from .models import Event, Family
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -42,3 +46,32 @@ class LoginAPI(generics.GenericAPIView):
                 "access": str(refresh.access_token),
             })
         return Response({"error": "Invalid credentials"}, status=400)
+    
+class EventListCreateAPI(generics.ListCreateAPIView):
+    serializer_class = EventSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        # Получаем события пользователя и события из его семей
+        return Event.objects.filter(
+            models.Q(creator=user) | 
+            models.Q(family__members=user)
+        ).distinct()
+
+    def perform_create(self, serializer):
+        serializer.save(creator=self.request.user)
+
+class WeekEventsAPI(generics.ListAPIView):
+    serializer_class = EventSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        week_start = timezone.now() - timedelta(days=timezone.now().weekday())
+        week_end = week_start + timedelta(days=7)
+        return Event.objects.filter(
+            (models.Q(creator=user) | models.Q(family__members=user)),
+            start_time__gte=week_start,
+            start_time__lte=week_end
+        ).distinct().order_by('start_time') 

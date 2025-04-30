@@ -16,7 +16,7 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
-from famschapp.views import RegisterAPI, LoginAPI
+from famschapp.views import *
 from famschapp.views import current_user
 
 urlpatterns = [
@@ -24,4 +24,6 @@ urlpatterns = [
     path('api/user/', current_user, name='current_user'),
     path('api/register/', RegisterAPI.as_view(), name='register'),
     path('api/login/', LoginAPI.as_view()),
+    path('api/events/', EventListCreateAPI.as_view(), name='event-list'),
+    path('api/events/week/', WeekEventsAPI.as_view(), name='week-events'),
 ]
