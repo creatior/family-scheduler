@@ -9,7 +9,6 @@ export default function Register() {
         username: '',
         email: '',
         password: '',
-        phone: '',
         birth_date: '',
     });
     const [error, setError] = useState('');
@@ -37,8 +36,10 @@ export default function Register() {
             localStorage.setItem('token', res.data.access);
             navigate('/');
         } catch (err) {
-            setError(err.response?.data || 'Ошибка регистрации');
-            console.error('Registration error:', err);
+            const errorMsg = err.response?.data?.detail 
+            || err.response?.data?.message 
+            || 'Ошибка регистрации';
+            setError(errorMsg);
         } finally {
             setIsLoading(false);
         }
@@ -96,19 +97,6 @@ export default function Register() {
                         <div className="password-hint">
                             Пароль должен содержать минимум 8 символов
                         </div>
-                    </div>
-                    
-                    <div className="form-group">
-                        <label htmlFor="phone">Телефон</label>
-                        <input
-                            id="phone"
-                            name="phone"
-                            type="tel"
-                            className="form-control"
-                            placeholder="+7 (XXX) XXX-XX-XX"
-                            value={formData.phone}
-                            onChange={handleChange}
-                        />
                     </div>
                     
                     <div className="form-group">
