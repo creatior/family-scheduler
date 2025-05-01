@@ -93,13 +93,22 @@
     margin: 1px 0;
     padding: 4px;
     border-radius: 3px;
-    border-width: 1px;
-    border-color: #000000;
-    color: white;
+    color: rgb(20, 26, 41);
+    opacity: 0.7     !important;
+    mix-blend-mode: none; 
     font-size: 12px;
     overflow: hidden;
     cursor: pointer;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
     z-index: 1;
+  }
+
+  .calendar-event.default {
+    background-color: rgba(74, 107, 223, 0.7);
+  }
+  
+  .calendar-event.family {
+    background-color: var(--family-color);
   }
   
   .event-time {

@@ -1,11 +1,23 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import axios from 'axios';
-import { format, startOfWeek, addDays, isSameDay, getMinutes } from 'date-fns';
+import { format, startOfWeek, addDays, isSameDay, parseISO } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import EventModal from './EventModal';
 import '../styles/calendar.css';
 import UserDropdown from './UserDropdown';
+
+const COLOR_PALETTE = [
+  '#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8',
+  '#F06292', '#7986CB', '#9575CD', '#64B5F6', '#4DB6AC',
+  '#81C784', '#FFD54F', '#FF8A65', '#A1887F', '#90A4AE'
+];
+
+const getFamilyColor = (familyId) => {
+  if (!familyId) return 'rgba(74, 107, 223, 0.7)';
+  const index = parseInt(familyId) % COLOR_PALETTE.length;
+  return COLOR_PALETTE[index];
+};
 
 export default function Calendar() {
   const { user } = useContext(AuthContext);
@@ -35,12 +47,7 @@ export default function Calendar() {
   }, [user, currentDate]);
 
   const weekStart = startOfWeek(currentDate, { locale: ru });
-  const weekDays = [];
-  
-  for (let i = 0; i < 7; i++) {
-    const day = addDays(weekStart, i);
-    weekDays.push(day);
-  }
+  const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
 
   const handleDateClick = (date) => {
     setSelectedDate(date);
@@ -77,10 +84,8 @@ export default function Calendar() {
       </div>
 
       <div className="calendar-grid">
-        {/* Пустая ячейка в углу */}
         <div className="time-corner"></div>
         
-        {/* Заголовки дней недели */}
         {weekDays.map((day, i) => (
           <div key={`header-${i}`} className="day-header">
             <div className="day-name">{format(day, 'EEE', { locale: ru })}</div>
@@ -90,60 +95,64 @@ export default function Calendar() {
           </div>
         ))}
 
-        {/* Сетка времени и событий */}
         {timeSlots.map((hour, hourIdx) => (
           <React.Fragment key={hour}>
-            {/* Метка времени */}
             <div className="time-label">
               {`${hour}:00`}
             </div>
             
-            {/* Ячейки дней для этого часа */}
             {weekDays.map((day, dayIdx) => {
-              const hourStart = new Date(day);
-              hourStart.setHours(hour, 0, 0, 0);
+              const cellStart = new Date(day);
+              cellStart.setHours(hour, 0, 0, 0);
               
-              const hourEnd = new Date(day);
-              hourEnd.setHours(hour + 1, 0, 0, 0);
-              
-              const hourEvents = events.filter(event => {
-                const eventStart = new Date(event.start_time);
-                const eventEnd = new Date(event.end_time);
-                return (
-                  (eventStart >= hourStart && eventStart < hourEnd) ||
-                  (eventEnd > hourStart && eventEnd <= hourEnd) ||
-                  (eventStart <= hourStart && eventEnd >= hourEnd)
-                );
-              });
+              const cellEnd = new Date(day);
+              cellEnd.setHours(hour + 1, 0, 0, 0);
 
               return (
                 <div 
                   key={`cell-${dayIdx}-${hourIdx}`}
                   className="calendar-cell"
-                  onClick={() => handleDateClick(hourStart)}
+                  onClick={() => handleDateClick(cellStart)}
                 >
-                  {hourEvents.map(event => (
-                    <div
-                      key={event.id}
-                      className="calendar-event"
-                      onClick={(e) => handleEventClick(event, e)}
-                      style={{
-                        backgroundColor: event.family ? `#${event.family.id.toString().padStart(6, '0')}` : '#4a6bdf',
-                        top: `${(new Date(event.start_time).getHours() - hour + getMinutes(new Date(event.start_time)) / 60) * 60}px`,
-                        height: `${(new Date(event.end_time) - new Date(event.start_time)) / (1000 * 60) * 1}px`,
-                        position: 'absolute',
-                        width: 'calc(100% - 4px)',
-                      }}
-                    >
-                      <div className="event-time">
-                        {format(new Date(event.start_time), 'HH:mm')} - {format(new Date(event.end_time), 'HH:mm')} 
-                      </div>
-                      <div className="event-title">{event.title}</div>
-                      {event.family && (
-                        <div className="event-family">{event.family.name}</div>
-                      )}
-                    </div>
-                  ))}
+                  {events
+                    .filter(event => {
+                      const eventStart = parseISO(event.start_time);
+                      const eventEnd = parseISO(event.end_time);
+                      return eventStart >= cellStart && eventStart < cellEnd;
+                    })
+                    .map(event => {
+                      const eventStart = parseISO(event.start_time);
+                      const eventEnd = parseISO(event.end_time);
+                      const durationMinutes = (eventEnd - eventStart) / (1000 * 60);
+                      const hoursSpan = Math.ceil(durationMinutes / 60);
+
+                      return (
+                        <div
+                          key={event.id}
+                          className="calendar-event"
+                          onClick={(e) => handleEventClick(event, e)}
+                          style={{
+                            backgroundColor: getFamilyColor(event.family?.id),
+                            height: `${durationMinutes}px`,
+                            position: 'absolute',
+                            width: 'calc(100% - 4px)',
+                            zIndex: 1,
+                            top: `${eventStart.getMinutes() + 10}px`,
+                            borderRadius: hoursSpan > 1 ? '3px' : '3px',
+                          }}
+                        >
+                          <div className="event-content">
+                            <div className="event-time">
+                              {format(eventStart, 'HH:mm')} - {format(eventEnd, 'HH:mm')}
+                            </div>
+                            <div className="event-title">{event.title}</div>
+                            {event.family && (
+                              <div className="event-family">{event.family.name}</div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
                 </div>
               );
             })}
