@@ -13,10 +13,14 @@ const COLOR_PALETTE = [
   '#81C784', '#FFD54F', '#FF8A65', '#A1887F', '#90A4AE'
 ];
 
-const getFamilyColor = (familyId) => {
-  if (!familyId) return 'rgba(74, 107, 223, 0.7)';
-  const index = parseInt(familyId) % COLOR_PALETTE.length;
+const getUserColor = (userId) => {
+  if (!userId) return 'rgba(74, 107, 223, 0.7)';
+  try {
+  const index = parseInt(userId) % COLOR_PALETTE.length;
   return COLOR_PALETTE[index];
+  } catch {
+    return 'rgba(74, 107, 223, 0.7)';
+  }
 };
 
 export default function Calendar() {
@@ -132,7 +136,7 @@ export default function Calendar() {
                           className="calendar-event"
                           onClick={(e) => handleEventClick(event, e)}
                           style={{
-                            backgroundColor: getFamilyColor(event.family?.id),
+                            backgroundColor: getUserColor(event.creator?.id),
                             height: `${durationMinutes}px`,
                             position: 'absolute',
                             width: 'calc(100% - 4px)',
@@ -147,7 +151,7 @@ export default function Calendar() {
                             </div>
                             <div className="event-title">{event.title}</div>
                             {event.family && (
-                              <div className="event-family">{event.family.name}</div>
+                              <div className="event-creator">{event.creator.username || "Неизвестно"}</div>
                             )}
                           </div>
                         </div>

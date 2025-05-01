@@ -33,9 +33,8 @@ class FamilySerializer(serializers.ModelSerializer):
 
 class EventSerializer(serializers.ModelSerializer):
     family = FamilySerializer(read_only=True)
-    creator_name = serializers.CharField(source='creator.username', read_only=True)
+    creator = UserSerializer(read_only=True)
     
     class Meta:
         model = Event
-        fields = ['id', 'title', 'description', 'start_time', 'end_time', 
-                 'is_private', 'family', 'creator_name']
+        fields = '__all__'
