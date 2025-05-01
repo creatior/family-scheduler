@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import axios from 'axios';
-import { format, startOfWeek, addDays, isSameDay, parseISO } from 'date-fns';
+import { format, startOfWeek, addDays, isSameDay, parseISO, addHours } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import EventModal from './EventModal';
 import '../styles/calendar.css';
@@ -34,16 +34,43 @@ export default function Calendar() {
   const [selectedMembers, setSelectedMembers] = useState([]);
   const [showMemberFilter, setShowMemberFilter] = useState(false);
 
+  const [showAddEventModal, setShowAddEventModal] = useState(false);
+  const [newEvent, setNewEvent] = useState({
+    title: '',
+    description: '',
+    start_time: '',
+    end_time: '',
+    is_private: false
+  });
+
+  const [isLoading, setIsLoading] = useState(false);
+
   const fetchEvents = async () => {
+    setIsLoading(true);
     try {
+      const weekStart = startOfWeek(currentDate, { locale: ru });
+      const weekEnd = addDays(weekStart, 6);
+      
+      console.log('Fetching events for week:', {
+        start_date: format(weekStart, 'yyyy-MM-dd'),
+        end_date: format(weekEnd, 'yyyy-MM-dd')
+      });
+
       const res = await axios.get('http://localhost:8000/api/events/week/', {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('token')}`
+        },
+        params: {
+          start_date: format(weekStart, 'yyyy-MM-dd'),
+          end_date: format(weekEnd, 'yyyy-MM-dd')
         }
       });
+      console.log('Received events:', res.data);
       setEvents(res.data);
     } catch (err) {
       console.error('Error fetching events:', err);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -55,7 +82,6 @@ export default function Calendar() {
         }
       });
       setFamilyMembers(res.data);
-      // Изначально выбираем всех членов семьи
       setSelectedMembers(res.data.map(member => member.id));
     } catch (err) {
       console.error('Error fetching family members:', err);
@@ -67,7 +93,7 @@ export default function Calendar() {
       fetchEvents();
       fetchFamilyMembers();
     }
-  }, [user, currentDate]);
+  }, [user, currentDate]); 
 
   const weekStart = startOfWeek(currentDate, { locale: ru });
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
@@ -106,11 +132,58 @@ export default function Calendar() {
 
   const timeSlots = Array.from({ length: 16 }, (_, i) => i + 8);
 
+  const handleAddEventClick = () => {
+    setShowAddEventModal(true);
+    setNewEvent({
+      title: '',
+      description: '',
+      start_time: format(new Date(), "yyyy-MM-dd'T'HH:mm"),
+      end_time: format(addHours(new Date(), 1), "yyyy-MM-dd'T'HH:mm"),
+      is_private: false
+    });
+  };
+
+  const handleInputChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setNewEvent(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value
+    }));
+  };
+
+  const handleAddEventSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      await axios.post('http://localhost:8000/api/events/', newEvent, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      setShowAddEventModal(false);
+      fetchEvents();
+    } catch (err) {
+      console.error('Error adding event:', err);
+    }
+  };
+
   return (
     <div className="calendar-container">
+      {isLoading && (
+        <div className="loading-overlay">
+          <div className="loading-spinner"></div>
+        </div>
+      )}
+
       <div className="calendar-header">
         <h2>{format(currentDate, 'MMMM yyyy', { locale: ru })}</h2>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <button 
+            onClick={handleAddEventClick}
+            className="add-event-button"
+          >
+            + Добавить событие
+          </button>
+
           {familyMembers.length > 0 && (
             <div className="member-filter">
               <button 
@@ -145,20 +218,109 @@ export default function Calendar() {
               )}
             </div>
           )}
+          
           <div className="calendar-controls">
-            <button onClick={() => setCurrentDate(addDays(currentDate, -7))}>
+            <button onClick={() => {
+              const newDate = addDays(currentDate, -7);
+              setCurrentDate(newDate);
+            }}>
               &lt; Предыдущая
             </button>
-            <button onClick={() => setCurrentDate(new Date())}>
+            <button onClick={() => {
+              setCurrentDate(new Date());
+            }}>
               Сегодня
             </button>
-            <button onClick={() => setCurrentDate(addDays(currentDate, 7))}>
+            <button onClick={() => {
+              const newDate = addDays(currentDate, 7);
+              setCurrentDate(newDate);
+            }}>
               Следующая &gt;
             </button>
           </div>
           <UserDropdown />
         </div>
       </div>
+
+      {showAddEventModal && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <h3>Добавить новое событие</h3>
+            <form onSubmit={handleAddEventSubmit}>
+              <div className="form-group">
+                <label>Название:</label>
+                <input
+                  type="text"
+                  name="title"
+                  value={newEvent.title}
+                  onChange={handleInputChange}
+                  required
+                />
+              </div>
+              
+              <div className="form-group">
+                <label>Описание:</label>
+                <textarea
+                  name="description"
+                  value={newEvent.description}
+                  onChange={handleInputChange}
+                />
+              </div>
+              
+              <div className="form-group">
+                <label>Начало:</label>
+                <input
+                  type="datetime-local"
+                  name="start_time"
+                  value={newEvent.start_time}
+                  onChange={handleInputChange}
+                  required
+                  step="60" 
+                />
+              </div>
+              
+              <div className="form-group">
+                <label>Конец:</label>
+                <input
+                  type="datetime-local"
+                  name="end_time"
+                  value={newEvent.end_time}
+                  onChange={handleInputChange}
+                  required
+                  step="60" 
+                />
+              </div>
+              
+              <div className="form-group checkbox-group">
+                <input
+                  type="checkbox"
+                  id="is_private"
+                  name="is_private"
+                  checked={newEvent.is_private}
+                  onChange={handleInputChange}
+                />
+                <label htmlFor="is_private">Приватное событие</label>
+              </div>
+              
+              <div className="form-actions">
+                <button 
+                  type="button" 
+                  className="cancel-button"
+                  onClick={() => setShowAddEventModal(false)}
+                >
+                  Отмена
+                </button>
+                <button 
+                  type="submit"
+                  className="submit-button"
+                >
+                  Сохранить
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       <div className="calendar-grid">
         <div className="time-corner"></div>
@@ -243,10 +405,8 @@ export default function Calendar() {
         <EventModal
           date={selectedDate}
           event={selectedEvent}
-          onClose={() => {
-            setShowModal(false);
-            fetchEvents();
-          }}
+          onClose={() => setShowModal(false)}
+          refreshEvents={fetchEvents}
         />
       )}
     </div>

@@ -4,12 +4,12 @@ from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
-from .serializers import RegisterSerializer, UserSerializer
-from django.contrib.auth import authenticate, login
-from .serializers import EventSerializer
+from rest_framework.generics import RetrieveUpdateDestroyAPIView
+from .serializers import RegisterSerializer, UserSerializer, EventSerializer
+from django.contrib.auth import authenticate
 from django.utils import timezone
 from django.db import models
-from datetime import timedelta
+from datetime import datetime, timedelta
 from .models import Event, Family
 
 @api_view(['GET'])
@@ -33,7 +33,7 @@ class RegisterAPI(generics.GenericAPIView):
                 "message": "User created successfully!",
             }, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    
+
 class LoginAPI(generics.GenericAPIView):
     def post(self, request):
         username = request.data.get('username')
@@ -47,44 +47,76 @@ class LoginAPI(generics.GenericAPIView):
                 "access": str(refresh.access_token),
             })
         return Response({"error": "Invalid credentials"}, status=400)
-    
-class EventListCreateAPI(generics.ListCreateAPIView):
+
+class EventAPI(generics.ListCreateAPIView):
     serializer_class = EventSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         user = self.request.user
-        # Получаем события пользователя и события из его семей
+        return Event.objects.filter(
+            models.Q(creator=user) | 
+            models.Q(family__members=user)
+        ).distinct().order_by('start_time')
+
+    def perform_create(self, serializer):
+        user_family = self.request.user.families.first()
+        serializer.save(creator=self.request.user, family=user_family)
+
+class EventDetailAPI(RetrieveUpdateDestroyAPIView):
+    serializer_class = EventSerializer
+    permission_classes = [IsAuthenticated]
+    queryset = Event.objects.all()
+
+    def get_queryset(self):
+        user = self.request.user
         return Event.objects.filter(
             models.Q(creator=user) | 
             models.Q(family__members=user)
         ).distinct()
 
-    def perform_create(self, serializer):
-        serializer.save(creator=self.request.user)
+    def perform_update(self, serializer):
+        serializer.save()
+
+    def perform_destroy(self, instance):
+        instance.delete()
 
 class WeekEventsAPI(generics.ListAPIView):
     serializer_class = EventSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         user = self.request.user
-        week_start = timezone.now() - timedelta(days=timezone.now().weekday())
-        week_end = week_start + timedelta(days=7)
+        start_date = self.request.query_params.get('start_date')
+        end_date = self.request.query_params.get('end_date')
+        
+        if start_date and end_date:
+            try:
+                start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
+                end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
+            except ValueError:
+                return Event.objects.none()
+        else:
+            start_date = timezone.now() - timedelta(days=timezone.now().weekday())
+            end_date = start_date + timedelta(days=7)
+        
         return Event.objects.filter(
             (models.Q(creator=user) | models.Q(family__members=user)),
-            start_time__gte=week_start,
-            start_time__lte=week_end
-        ).distinct().order_by('start_time') 
-    
+            start_time__date__range=(start_date, end_date)
+        ).distinct().order_by('start_time')
+
 class FamilyMembersView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        family = request.user.families.first()
-        if not family:
-            return Response([])
+        families = request.user.families.all()
+        members = set()
         
-        members = family.members.all()
+        for family in families:
+            members.update(family.members.all())
+        
+        # Добавляем самого пользователя
+        members.add(request.user)
+        
         serializer = UserSerializer(members, many=True)
         return Response(serializer.data)
