@@ -16,8 +16,8 @@ const COLOR_PALETTE = [
 const getUserColor = (userId) => {
   if (!userId) return 'rgba(74, 107, 223, 0.7)';
   try {
-  const index = parseInt(userId) % COLOR_PALETTE.length;
-  return COLOR_PALETTE[index];
+    const index = parseInt(userId) % COLOR_PALETTE.length;
+    return COLOR_PALETTE[index];
   } catch {
     return 'rgba(74, 107, 223, 0.7)';
   }
@@ -30,6 +30,9 @@ export default function Calendar() {
   const [showModal, setShowModal] = useState(false);
   const [selectedDate, setSelectedDate] = useState(null);
   const [selectedEvent, setSelectedEvent] = useState(null);
+  const [familyMembers, setFamilyMembers] = useState([]);
+  const [selectedMembers, setSelectedMembers] = useState([]);
+  const [showMemberFilter, setShowMemberFilter] = useState(false);
 
   const fetchEvents = async () => {
     try {
@@ -44,9 +47,25 @@ export default function Calendar() {
     }
   };
 
+  const fetchFamilyMembers = async () => {
+    try {
+      const res = await axios.get('http://localhost:8000/api/family/members/', {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      setFamilyMembers(res.data);
+      // Изначально выбираем всех членов семьи
+      setSelectedMembers(res.data.map(member => member.id));
+    } catch (err) {
+      console.error('Error fetching family members:', err);
+    }
+  };
+
   useEffect(() => {
     if (user) {
       fetchEvents();
+      fetchFamilyMembers();
     }
   }, [user, currentDate]);
 
@@ -65,13 +84,67 @@ export default function Calendar() {
     setShowModal(true);
   };
 
+  const handleMemberToggle = (memberId) => {
+    setSelectedMembers(prev => 
+      prev.includes(memberId)
+        ? prev.filter(id => id !== memberId)
+        : [...prev, memberId]
+    );
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedMembers.length === familyMembers.length) {
+      setSelectedMembers([]); // Убрать всех
+    } else {
+      setSelectedMembers(familyMembers.map(member => member.id)); // Выбрать всех
+    }
+  };
+
+  const filteredEvents = events.filter(event => 
+    selectedMembers.includes(event.creator?.id)
+  );
+
   const timeSlots = Array.from({ length: 16 }, (_, i) => i + 8);
 
   return (
     <div className="calendar-container">
       <div className="calendar-header">
         <h2>{format(currentDate, 'MMMM yyyy', { locale: ru })}</h2>
-        <div style={{ display: 'flex', alignItems: 'center' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          {familyMembers.length > 0 && (
+            <div className="member-filter">
+              <button 
+                onClick={() => setShowMemberFilter(!showMemberFilter)}
+                className="filter-button"
+              >
+                Фильтр по членам семьи ({selectedMembers.length}/{familyMembers.length})
+              </button>
+              {showMemberFilter && (
+                <div className="member-filter-dropdown">
+                  <div className="member-filter-all">
+                    <button onClick={toggleSelectAll}>
+                      {selectedMembers.length === familyMembers.length 
+                        ? 'Убрать всех' 
+                        : 'Выбрать всех'}
+                    </button>
+                  </div>
+                  {familyMembers.map(member => (
+                    <div key={member.id} className="member-filter-item">
+                      <input
+                        type="checkbox"
+                        id={`member-${member.id}`}
+                        checked={selectedMembers.includes(member.id)}
+                        onChange={() => handleMemberToggle(member.id)}
+                      />
+                      <label htmlFor={`member-${member.id}`}>
+                        {member.username || member.email}
+                      </label>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
           <div className="calendar-controls">
             <button onClick={() => setCurrentDate(addDays(currentDate, -7))}>
               &lt; Предыдущая
@@ -118,7 +191,7 @@ export default function Calendar() {
                   className="calendar-cell"
                   onClick={() => handleDateClick(cellStart)}
                 >
-                  {events
+                  {filteredEvents
                     .filter(event => {
                       const eventStart = parseISO(event.start_time);
                       const eventEnd = parseISO(event.end_time);
@@ -150,8 +223,10 @@ export default function Calendar() {
                               {format(eventStart, 'HH:mm')} - {format(eventEnd, 'HH:mm')}
                             </div>
                             <div className="event-title">{event.title}</div>
-                            {event.family && (
-                              <div className="event-creator">{event.creator.username || "Неизвестно"}</div>
+                            {event.creator && (
+                              <div className="event-creator">
+                                {event.creator.username || event.creator.email || 'Неизвестно'}
+                              </div>
                             )}
                           </div>
                         </div>

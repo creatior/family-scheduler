@@ -26,4 +26,5 @@ urlpatterns = [
     path('api/login/', LoginAPI.as_view()),
     path('api/events/', EventListCreateAPI.as_view(), name='event-list'),
     path('api/events/week/', WeekEventsAPI.as_view(), name='week-events'),
+    path('api/family/members/', FamilyMembersView.as_view(), name='family-members'),
 ]
