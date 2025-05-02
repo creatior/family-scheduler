@@ -288,6 +288,7 @@
 
 .notification-icon-container {
   position: relative;
+  bottom: 8px;
 }
 
 .notification-icon {
