@@ -81,10 +81,28 @@ export default function Calendar() {
           Authorization: `Bearer ${localStorage.getItem('token')}`
         }
       });
-      setFamilyMembers(res.data);
-      setSelectedMembers(res.data.map(member => member.id));
+      
+      const members = [...res.data];
+      if (user && !members.some(m => m.id === user.id)) {
+        members.push({
+          id: user.id,
+          username: user.username,
+          email: user.email
+        });
+      }
+      
+      setFamilyMembers(members);
+      setSelectedMembers(members.map(member => member.id));
     } catch (err) {
       console.error('Error fetching family members:', err);
+      if (user) {
+        setFamilyMembers([{
+          id: user.id,
+          username: user.username,
+          email: user.email
+        }]);
+        setSelectedMembers([user.id]);
+      }
     }
   };
 
@@ -127,7 +145,8 @@ export default function Calendar() {
   };
 
   const filteredEvents = events.filter(event => 
-    selectedMembers.includes(event.creator?.id)
+    event.creator?.id === user?.id ||
+    (!event.is_private && selectedMembers.includes(event.creator?.id))
   );
 
   const timeSlots = Array.from({ length: 16 }, (_, i) => i + 8);
@@ -211,6 +230,7 @@ export default function Calendar() {
                       />
                       <label htmlFor={`member-${member.id}`}>
                         {member.username || member.email}
+                        {member.id === user?.id && ' (Вы)'}
                       </label>
                     </div>
                   ))}

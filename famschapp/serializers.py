@@ -58,3 +58,8 @@ class EventSerializer(serializers.ModelSerializer):
             'creator': {'read_only': True},
             'family': {'required': False}
         }
+
+class InvitationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Invitation
+        fields = '__all__'
