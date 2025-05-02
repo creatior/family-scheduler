@@ -8,9 +8,9 @@ import '../styles/calendar.css';
 import UserDropdown from './UserDropdown';
 
 const COLOR_PALETTE = [
-  '#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8',
-  '#F06292', '#7986CB', '#9575CD', '#64B5F6', '#4DB6AC',
-  '#81C784', '#FFD54F', '#FF8A65', '#A1887F', '#90A4AE'
+  '#FF6B6B', '#4ECDC4', '#1E6575', '#FFA07A', '#1DF0BB',
+  '#F06292', '#65EB63', '#7D6E96', '#C4C460', '#B32246',
+  '#5FFF5C', '#FFD54F', '#FF8A65', '#A1887F', '#6B28A 6'
 ];
 
 const getUserColor = (userId) => {
@@ -138,16 +138,18 @@ export default function Calendar() {
 
   const toggleSelectAll = () => {
     if (selectedMembers.length === familyMembers.length) {
-      setSelectedMembers([]); // Убрать всех
+      setSelectedMembers([user.id]);
     } else {
-      setSelectedMembers(familyMembers.map(member => member.id)); // Выбрать всех
+      setSelectedMembers(familyMembers.map(member => member.id));
     }
   };
 
-  const filteredEvents = events.filter(event => 
-    event.creator?.id === user?.id ||
-    (!event.is_private && selectedMembers.includes(event.creator?.id))
-  );
+  const filteredEvents = events.filter(event => {
+    if (event.creator?.id === user?.id) {
+      return selectedMembers.includes(user.id);
+    }
+    return !event.is_private && selectedMembers.includes(event.creator?.id);
+  });
 
   const timeSlots = Array.from({ length: 16 }, (_, i) => i + 8);
 
