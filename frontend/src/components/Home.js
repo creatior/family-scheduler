@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import axios from 'axios';
-import Calendar from '../components/Calendar';
+import Calendar from '../components/calendar/Calendar';
 import '../styles/home.css';
 
 export default function Home() {
