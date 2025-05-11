@@ -105,19 +105,44 @@ class WeekEventsAPI(generics.ListAPIView):
             start_time__date__range=(start_date, end_date)
         ).distinct().order_by('start_time')
 
+class CreateFamilyView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        user = request.user
+
+        if user.families.exists():
+            return Response({'error' : 'Вы уже состоите в семье'}, status=400)
+        
+        name = request.data.get('name')
+        if not name:
+            return Response({'error': 'Необходимо указать название семьи'}, status=400)
+        
+        family = Family.objects.create(name=name, creator=user)
+        family.members.add(user)
+
+        serializer = FamilySerializer(family)
+        return Response(serializer.data)
+
 class FamilyMembersView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        members = set()
+        user = request.user
+        family = user.families.first()  # Получаем первую семью пользователя
         
-        for family in request.user.families.all():
-            members.update(family.members.all())
+        if not family:
+            return Response({
+                'has_family': False,
+                'members': []
+            })
         
-        members.add(request.user)
-        
+        members = family.members.all()
         serializer = UserSerializer(members, many=True)
-        return Response(serializer.data)
+        return Response({
+            'has_family': True,
+            'members': serializer.data
+        })
 
 class SendInvitationView(APIView):
     permission_classes = [IsAuthenticated]

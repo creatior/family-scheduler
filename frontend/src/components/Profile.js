@@ -6,7 +6,7 @@ import '../styles/profile.css';
 import { FaArrowLeft, FaBell, FaExclamation } from 'react-icons/fa';
 
 const Profile = () => {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const [familyMembers, setFamilyMembers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -15,6 +15,9 @@ const Profile = () => {
   const [success, setSuccess] = useState('');
   const [invitations, setInvitations] = useState([]);
   const [showInvitations, setShowInvitations] = useState(false);
+  const [hasFamily, setHasFamily] = useState(false);
+  const [showCreateFamilyModal, setShowCreateFamilyModal] = useState(false);
+  const [familyName, setFamilyName] = useState('');
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -25,6 +28,20 @@ const Profile = () => {
       navigate('/login', {replace: true});
     }
   }, [user, navigate]);
+  
+  const checkFamilyMembership = async () => {
+    try {
+      const res = await axios.get('http://localhost:8000/api/family/check-membership/', {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      setHasFamily(res.data.has_family);
+    } catch (err) {
+      console.error('Error checking family membership:', err);
+      setHasFamily(false);
+    }
+  };
 
   const fetchFamilyMembers = async () => {
     try {
@@ -33,10 +50,13 @@ const Profile = () => {
           Authorization: `Bearer ${localStorage.getItem('token')}`
         }
       });
-      setFamilyMembers(res.data);
+      setHasFamily(res.data.has_family);
+      setFamilyMembers(res.data.members);
       setLoading(false);
     } catch (err) {
       console.error('Error fetching family members:', err);
+      setHasFamily(false);
+      setFamilyMembers([]);
       setLoading(false);
     }
   };
@@ -51,6 +71,33 @@ const Profile = () => {
       setInvitations(res.data);
     } catch (err) {
       console.error('Error fetching invitations:', err);
+    }
+  };
+
+  const handleCreateFamily = async () => {
+    if (!familyName.trim()) {
+      setError('Введите название семьи');
+      return;
+    }
+
+    try {
+      const response = await axios.post(
+        'http://localhost:8000/api/family/create/',
+        { name: familyName },
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`
+          }
+        }
+      );
+      
+      setSuccess('Семья успешно создана!');
+      setFamilyName('');
+      setShowCreateFamilyModal(false);
+      fetchFamilyMembers();
+      checkFamilyMembership();
+    } catch (err) {
+      setError(err.response?.data?.error || 'Ошибка при создании семьи');
     }
   };
 
@@ -215,36 +262,102 @@ const Profile = () => {
         {user?.birth_date && <p><strong>Дата рождения:</strong> {new Date(user.birth_date).toLocaleDateString()}</p>}
       </div>
 
-      {familyMembers.length > 0 ? (
-        <div className="family-members">
-          <div className="family-header">
-            <h2>Члены семьи</h2>
+      <div className="family-members">
+        <div className="family-header">
+          <h2>Члены семьи</h2>
+          {hasFamily ? (
             <button 
               className="add-member-btn"
               onClick={() => setShowModal(true)}
             >
               Добавить
             </button>
-          </div>
-          <ul>
-            {familyMembers.map(member => (
-              <li key={member.id}>
-                <span>
-                  {member.username} ({member.email})
-                  {member.id === user?.id && ' (Вы)'}
-                </span>
-              </li>
-            ))}
-          </ul>
-          <button 
-            className="leave-family-btn" 
-            onClick={handleLeaveFamily}
-          >
-            Выйти из семьи
-          </button>
+          ) : (
+            <button 
+              className="create-family-btn"
+              onClick={() => setShowCreateFamilyModal(true)}
+            >
+              Создать семью
+            </button>
+          )}
         </div>
-      ) : (
-        <p>Вы не состоите ни в одной семье.</p>
+
+        {hasFamily ? (
+          <>
+            <ul>
+              {familyMembers.map(member => (
+                <li key={member.id}>
+                  <span>
+                    {member.username} ({member.email})
+                    {member.id === user?.id && ' (Вы)'}
+                  </span>
+                </li>
+              ))}
+            </ul>
+            <button 
+              className="leave-family-btn" 
+              onClick={handleLeaveFamily}
+            >
+              Выйти из семьи
+            </button>
+          </>
+        ) : (
+          <p>Вы не состоите ни в одной семье.</p>
+        )}
+      </div>
+
+      {showCreateFamilyModal && (
+        <div className="modal-overlay">
+          <div className="modal">
+            <div className="modal-header">
+              <h3>Создание новой семьи</h3>
+              <button 
+                className="close-btn"
+                onClick={() => {
+                  setShowCreateFamilyModal(false);
+                  setFamilyName('');
+                  setError('');
+                }}
+              >
+                &times;
+              </button>
+            </div>
+            <div className="modal-body">
+              <div className="form-group">
+                <label>Название семьи:</label>
+                <input
+                  type="text"
+                  value={familyName}
+                  onChange={(e) => setFamilyName(e.target.value)}
+                  placeholder="Введите название семьи"
+                />
+              </div>
+              {error && <div className="error-message">{error}</div>}
+              {success && <div className="success-message">{success}</div>}
+            </div>
+            <div className="modal-footer">
+              <button 
+                type="button" 
+                className="cancel-btn"
+                onClick={() => {
+                  setShowCreateFamilyModal(false);
+                  setFamilyName('');
+                  setError('');
+                }}
+              >
+                Отмена
+              </button>
+              <button 
+                type="button" 
+                className="create-btn"
+                onClick={handleCreateFamily}
+                disabled={!familyName.trim()}
+              >
+                Создать
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {showModal && (
