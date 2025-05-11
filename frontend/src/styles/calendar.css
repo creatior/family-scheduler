@@ -23,69 +23,6 @@
     cursor: pointer;
   }
   
-  .calendar-grid {
-    display: grid;
-    grid-template-columns: 80px repeat(7, minmax(150px, 1fr));
-    grid-template-rows: 40px repeat(13, 60px);
-    flex-grow: 1;
-    overflow-y: auto;
-  }
-  
-  .time-corner {
-    grid-column: 1;
-    grid-row: 1;
-    border-bottom: 1px solid #e0e0e0;
-  }
-  
-  .day-header {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    border-bottom: 1px solid #e0e0e0;
-    padding: 10px;
-  }
-  
-  .day-name {
-    font-size: 14px;
-    color: #70757a;
-    text-transform: uppercase;
-  }
-  
-  .day-number {
-    font-size: 18px;
-    padding: 5px;
-    border-radius: 50%;
-    width: 28px;
-    height: 28px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  
-  .day-number.today {
-    background: #1a73e8;
-    color: white;
-  }
-  
-  .time-label {
-    display: flex;
-    align-items: flex-start;
-    justify-content: flex-end;
-    padding-right: 10px;
-    font-size: 14px; 
-    color: #70757a;
-    transform: translateY(-10px);
-  }
-  
-  .calendar-cell {
-    position: relative;
-    border-right: 1px solid #e0e0e0;
-    border-bottom: 1px solid #e0e0e0;
-    min-height: 70px;
-    height: 70px;
-  }
-  
   .calendar-event {
     position: absolute;
     left: 2px;
@@ -236,7 +173,119 @@
     font-size: 14px;
     white-space: nowrap;
   }
-  /* Стили для кнопки добавления события */
+
+  .calendar-grid-container {
+    height: calc(100vh - 150px);
+    overflow: hidden;
+    position: relative;
+  }
+  
+  .calendar-grid {
+    display: grid;
+    grid-template-columns: 60px repeat(7, 1fr);
+    grid-auto-rows: 60px;
+    height: 100%;
+    overflow-y: auto;
+    position: relative;
+  }
+  
+  .time-corner {
+    grid-row: 1;
+    grid-column: 1;
+    border-bottom: 1px solid #e0e0e0;
+  }
+  
+  .day-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border-bottom: 1px solid #e0e0e0;
+    padding: 5px;
+  }
+  
+  .day-name {
+    font-size: 12px;
+    text-transform: uppercase;
+    color: #757575;
+  }
+  
+  .day-number {
+    font-size: 20px;
+    font-weight: bold;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+  }
+  
+  .day-number.today {
+    background-color: #1a73e8;
+    color: white;
+  }
+  
+  .time-label {
+    display: flex;
+    align-items: flex-start;
+    justify-content: flex-end;
+    padding-right: 5px;
+    font-size: 12px;
+    color: #757575;
+    position: relative;
+    top: -10px;
+  }
+  
+  .calendar-cell {
+    position: relative;
+    border-right: 1px solid #e0e0e0;
+    border-bottom: 1px solid #e0e0e0;
+    min-height: 60px;
+  }
+
+  
+  .event-content {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+  }
+  
+  .event-time {
+    font-weight: bold;
+    margin-bottom: 2px;
+  }
+  
+.event-title {
+  flex-grow: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  }
+  
+.event-creator {
+  font-size: 10px;
+  opacity: 0.8;
+}
+  
+
+.calendar-grid::-webkit-scrollbar {
+  width: 8px;
+}
+  
+.calendar-grid::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+  
+.calendar-grid::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}
+  
+.calendar-grid::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
 .add-event-button {
   background: #1a73e8;
   color: white;
@@ -252,7 +301,6 @@
   background: #0d5bba;
 }
 
-/* Стили для модального окна */
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -368,3 +416,4 @@
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
 }
+
