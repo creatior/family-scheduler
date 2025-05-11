@@ -19,9 +19,11 @@ const CalendarHeader = ({
   setShowMemberFilter,
 }) => {
   const { user } = useContext(AuthContext);
+  const formattedDate = format(currentDate, 'LLLL yyyy', { locale: ru });
+  const capitalizedDate = formattedDate.charAt(0).toUpperCase() + formattedDate.slice(1);
   return (
     <div className="calendar-header">
-      <h2>{format(currentDate, 'MMMM yyyy', { locale: ru })}</h2>
+      <h2 style={{ paddingRight: '10px' }}>{capitalizedDate}</h2> 
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
         <button 
           onClick={onAddEvent}
