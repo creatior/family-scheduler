@@ -8,7 +8,6 @@ import '../styles/modal.css';
 const EventModal = ({ date, event, onClose, refreshEvents }) => {
   const { user } = useContext(AuthContext);
   const [isEditing, setIsEditing] = useState(false);
-  const [families, setFamilies] = useState([]);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -19,21 +18,6 @@ const EventModal = ({ date, event, onClose, refreshEvents }) => {
   });
 
   useEffect(() => {
-    const fetchFamilies = async () => {
-      try {
-        const res = await axios.get('http://localhost:8000/api/families/', {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`
-          }
-        });
-        setFamilies(res.data);
-      } catch (err) {
-        console.error('Error fetching families:', err);
-      }
-    };
-
-    fetchFamilies();
-
     if (event) {
       setFormData({
         title: event.title,
@@ -69,8 +53,8 @@ const EventModal = ({ date, event, onClose, refreshEvents }) => {
     try {
       const dataToSend = {
         ...formData,
-        start_time: formData.start_time.endsWith('Z') ? formData.start_time : formData.start_time + 'Z',
-        end_time: formData.end_time.endsWith('Z') ? formData.end_time : formData.end_time + 'Z'
+        start_time: formData.start_time.endsWith('Z') ? formData.start_time : formData.start_time,
+        end_time: formData.end_time.endsWith('Z') ? formData.end_time : formData.end_time
       };
 
       if (event) {
