@@ -118,7 +118,7 @@ const Profile = () => {
 
     try {
       const response = await axios.post(
-        'http://localhost:8000/api/invitations/send/',
+        'http://localhost:8000/api/invitations/',
         requestData,
         {
           headers: {
@@ -161,9 +161,9 @@ const Profile = () => {
 
   const handleAcceptInvitation = async (invitationId) => {
     try {
-      await axios.post(
-        `http://localhost:8000/api/invitations/${invitationId}/accept/`,
-        {},
+      await axios.patch(
+        `http://localhost:8000/api/invitations/${invitationId}/`,
+        {action: 'accept'},
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem('token')}`
@@ -180,9 +180,9 @@ const Profile = () => {
 
   const handleRejectInvitation = async (invitationId) => {
     try {
-      await axios.post(
-        `http://localhost:8000/api/invitations/${invitationId}/reject/`,
-        {},
+      await axios.patch(
+        `http://localhost:8000/api/invitations/${invitationId}/`,
+        {action: 'reject'},
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem('token')}`

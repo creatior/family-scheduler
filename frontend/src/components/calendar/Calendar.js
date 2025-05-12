@@ -64,7 +64,7 @@ const Calendar = () => {
         }
       });
       
-      const members = [...res.data];
+      const members = [...res.data.members];
       if (user && !members.some(m => m.id === user.id)) {
         members.push({
           id: user.id,

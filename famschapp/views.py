@@ -161,9 +161,77 @@ class FamilyMembersView(APIView):
             'members': serializer.data
         })
 
-class SendInvitationView(APIView):
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+from .models import Invitation
+from .serializers import InvitationSerializer
+
+class InvitationView(APIView):
     permission_classes = [IsAuthenticated]
 
+    def get(self, request, invitation_id=None):
+        if invitation_id is None:
+            invitations = Invitation.objects.filter(
+                recipient=request.user,
+                status='pending'
+            ).select_related('family', 'sender')
+            serializer = InvitationSerializer(invitations, many=True)
+            return Response(serializer.data)
+        
+        try:
+            invitation = Invitation.objects.get(
+                id=invitation_id,
+                recipient=request.user,
+                status__in=['pending', 'accepted', 'rejected']
+            )
+            serializer = InvitationSerializer(invitation)
+            return Response(serializer.data)
+        except Invitation.DoesNotExist:
+            return Response(
+                {'message': 'Приглашение не найдено'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+    def patch(self, request, invitation_id):
+        action = request.data.get('action')
+
+        try:
+            invitation = Invitation.objects.get(
+                id=invitation_id,
+                recipient=request.user,
+                status='pending'
+            )
+
+            if action == 'accept':
+                invitation.family.members.add(request.user)
+                invitation.status = 'accepted'
+                invitation.save()
+                return Response(
+                    {'message': 'Приглашение принято'},
+                    status=status.HTTP_200_OK
+                )
+
+            elif action == 'reject':
+                invitation.status = 'rejected'
+                invitation.save()
+                return Response(
+                    {'message': 'Приглашение отклонено'},
+                    status=status.HTTP_200_OK
+                )
+
+            else:
+                return Response(
+                    {'message': 'Неверное действие (используйте "accept" или "reject")'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+        except Invitation.DoesNotExist:
+            return Response(
+                {'message': 'Приглашение не найдено или уже обработано'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
     def post(self, request):
         email = request.data.get('email')
         username = request.data.get('username')
@@ -214,67 +282,121 @@ class SendInvitationView(APIView):
             InvitationSerializer(invitation).data,
             status=status.HTTP_201_CREATED
         )
+
+# class SendInvitationView(APIView):
+#     permission_classes = [IsAuthenticated]
+
+#     def post(self, request):
+#         email = request.data.get('email')
+#         username = request.data.get('username')
+
+#         if not email and not username:
+#             return Response(
+#                 {'message': 'Укажите email или имя пользователя'},
+#                 status=status.HTTP_400_BAD_REQUEST
+#             )
+
+#         try:
+#             if email:
+#                 recipient = User.objects.get(email=email)
+#             elif username:
+#                 recipient = User.objects.get(username=username)
+#             else:
+#                 return Response(
+#                     {'message': 'Укажите email или имя пользователя'},
+#                     status=status.HTTP_400_BAD_REQUEST
+#                 )
+#         except User.DoesNotExist:
+#             return Response(
+#                 {'message': 'Пользователь не найден'},
+#                 status=status.HTTP_404_NOT_FOUND
+#             )
+
+#         family = request.user.families.first()  
+#         if family.members.filter(id=recipient.id).exists():
+#             return Response(
+#                 {'message': 'Этот пользователь уже в вашей семье'},
+#                 status=status.HTTP_400_BAD_REQUEST
+#             )
+
+#         if Invitation.objects.filter(family=family, recipient=recipient, status='pending').exists():
+#             return Response(
+#                 {'message': 'Приглашение уже отправлено этому пользователю'},
+#                 status=status.HTTP_400_BAD_REQUEST
+#             )
+
+#         invitation = Invitation.objects.create(
+#             family=family,
+#             sender=request.user,
+#             recipient=recipient,
+#             status='pending'
+#         )
+
+#         return Response(
+#             InvitationSerializer(invitation).data,
+#             status=status.HTTP_201_CREATED
+#         )
     
-class UserInvitationsView(APIView):
-    permission_classes = [IsAuthenticated]
+# class UserInvitationsView(APIView):
+#     permission_classes = [IsAuthenticated]
 
-    def get(self, request):
-        invitations = Invitation.objects.filter(
-            recipient=request.user,
-            status='pending'
-        ).select_related('family', 'sender')
+#     def get(self, request):
+#         invitations = Invitation.objects.filter(
+#             recipient=request.user,
+#             status='pending'
+#         ).select_related('family', 'sender')
         
-        serializer = InvitationSerializer(invitations, many=True)
-        return Response(serializer.data)
+#         serializer = InvitationSerializer(invitations, many=True)
+#         return Response(serializer.data)
 
-class AcceptInvitationView(APIView):
-    permission_classes = [IsAuthenticated]
+# class AcceptInvitationView(APIView):
+#     permission_classes = [IsAuthenticated]
 
-    def post(self, request, invitation_id):
-        try:
-            invitation = Invitation.objects.get(
-                id=invitation_id,
-                recipient=request.user,
-                status='pending'
-            )
+#     def post(self, request, invitation_id):
+#         try:
+#             invitation = Invitation.objects.get(
+#                 id=invitation_id,
+#                 recipient=request.user,
+#                 status='pending'
+#             )
             
-            invitation.family.members.add(request.user)
-            invitation.status = 'accepted'
-            invitation.save()
+#             invitation.family.members.add(request.user)
+#             invitation.status = 'accepted'
+#             invitation.save()
             
-            return Response(
-                {'message': 'Приглашение принято'},
-                status=status.HTTP_200_OK
-            )
+#             return Response(
+#                 {'message': 'Приглашение принято'},
+#                 status=status.HTTP_200_OK
+#             )
             
-        except Invitation.DoesNotExist:
-            return Response(
-                {'message': 'Приглашение не найдено'},
-                status=status.HTTP_404_NOT_FOUND
-            )
+#         except Invitation.DoesNotExist:
+#             return Response(
+#                 {'message': 'Приглашение не найдено'},
+#                 status=status.HTTP_404_NOT_FOUND
+#             )
 
-class RejectInvitationView(APIView):
-    permission_classes = [IsAuthenticated]
+# class RejectInvitationView(APIView):
+#     permission_classes = [IsAuthenticated]
 
-    def post(self, request, invitation_id):
-        try:
-            invitation = Invitation.objects.get(
-                id=invitation_id,
-                recipient=request.user,
-                status='pending'
-            )
+#     def post(self, request, invitation_id):
+#         try:
+#             invitation = Invitation.objects.get(
+#                 id=invitation_id,
+#                 recipient=request.user,
+#                 status='pending'
+#             )
             
-            invitation.status = 'rejected'
-            invitation.save()
+#             invitation.status = 'rejected'
+#             invitation.save()
             
-            return Response(
-                {'message': 'Приглашение отклонено'},
-                status=status.HTTP_200_OK
-            )
+#             return Response(
+#                 {'message': 'Приглашение отклонено'},
+#                 status=status.HTTP_200_OK
+#             )
             
-        except Invitation.DoesNotExist:
-            return Response(
-                {'message': 'Приглашение не найдено'},
-                status=status.HTTP_404_NOT_FOUND
-            )
+#         except Invitation.DoesNotExist:
+#             return Response(
+#                 {'message': 'Приглашение не найдено'},
+#                 status=status.HTTP_404_NOT_FOUND
+#             )
     
