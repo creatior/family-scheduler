@@ -146,7 +146,7 @@ class FamilyMembersView(APIView):
 
     def get(self, request):
         user = request.user
-        family = user.families.first()  # Получаем первую семью пользователя
+        family = user.families.first()
         
         if not family:
             return Response({
