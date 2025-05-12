@@ -82,7 +82,7 @@ const Profile = () => {
 
     try {
       const response = await axios.post(
-        'http://localhost:8000/api/family/create/',
+        'http://localhost:8000/api/family/',
         { name: familyName },
         {
           headers: {
@@ -141,8 +141,8 @@ const Profile = () => {
   const handleLeaveFamily = async () => {
     if (window.confirm('Вы уверены, что хотите покинуть семью?')) {
       try {
-        const response = await axios.post(
-          'http://localhost:8000/api/family/leave/',
+        const response = await axios.patch(
+          'http://localhost:8000/api/family/',
           {},
           {
             headers: {

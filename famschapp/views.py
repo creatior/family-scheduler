@@ -105,7 +105,7 @@ class WeekEventsAPI(generics.ListAPIView):
             start_time__date__range=(start_date, end_date)
         ).distinct().order_by('start_time')
 
-class CreateFamilyView(APIView):
+class FamilyView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
@@ -123,6 +123,23 @@ class CreateFamilyView(APIView):
 
         serializer = FamilySerializer(family)
         return Response(serializer.data)
+
+    def patch(self, request):
+        user = request.user
+        family = user.families.first()
+        
+        if not family:
+            return Response(
+                {'message': 'Вы не состоите ни в одной семье'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        family.members.remove(user)
+        
+        return Response(
+            {'message': 'Вы успешно покинули семью'},
+            status=status.HTTP_200_OK
+        )
 
 class FamilyMembersView(APIView):
     permission_classes = [IsAuthenticated]
@@ -261,23 +278,3 @@ class RejectInvitationView(APIView):
                 status=status.HTTP_404_NOT_FOUND
             )
     
-
-class LeaveFamilyView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def post(self, request):
-        user = request.user
-        family = user.families.first()
-        
-        if not family:
-            return Response(
-                {'message': 'Вы не состоите ни в одной семье'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
-        family.members.remove(user)
-        
-        return Response(
-            {'message': 'Вы успешно покинули семью'},
-            status=status.HTTP_200_OK
-        )
